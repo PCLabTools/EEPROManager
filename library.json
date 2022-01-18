@@ -1,0 +1,32 @@
+{
+  "name": "EEPROManager",
+  "version": "1.0.0",
+  "description": "EEPROM Manager which safely stores and retrieves referenced structs to provide persistent memory",
+  "keywords": "eeprom, manage, struct, nvm, memory",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/PCLabTools/EEPROManager"
+  },
+  "authors":
+  [
+    {
+      "name": "Larry Colvin",
+      "email": "pclabtools@projectcolvin.com",
+      "url": "https://www.projectcolvin.com/about",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/PCLabTools/EEPROManager",
+  "dependencies":
+  [
+    {
+      "owner": "robtillaart",
+      "name": "CRC",
+      "version": "^0.1.5"
+    }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}
