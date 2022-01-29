@@ -18,7 +18,7 @@ struct Settings
   uint16_t Version = 0x0001;
 } DeviceSettings;
 
-EEPROManager<Settings> manageDeviceSettings(DeviceSettings, 0x00000001);
+EEPROManager<Settings> manageDeviceSettings(&DeviceSettings, 0x0001);
 
 /**
  * @brief Initial Setup

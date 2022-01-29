@@ -18,4 +18,4 @@ update	KEYWORD2
 # Constants (LITERAL1)
 #######################################
 
-MAX_EEPROM_WRITES	LITERAL1
+EEPROM_MAX_WRITES	LITERAL1
