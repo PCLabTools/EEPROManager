@@ -34,6 +34,7 @@
       uint32_t update();                                // Updates the EEPROM ENTRY if the MEMORY has changed since last check
       void synchronise();                               // Scynhronises the EEPROM similar to the constructor in case the constructor method is not supported
       void reset();                                     // Resets the entire EEPROM back to default data (0xFF, 0xFF...)
+      void print(Stream* stream);                       // Dumps the memory to the assigned stream for use with printing and debugging
              
     private:
       void begin();                                     // Function used to initialise the EEPROM
@@ -110,6 +111,21 @@ template <class T> void EEPROManager<T>::reset()
   EEPROM.commit();
   #endif
   begin();
+}
+
+/**
+ * @brief Prints the EEPROM dump to the assigned stream for printing and debugging
+ * 
+ * @tparam T Object (struct) to manage
+ * @param dump string literal hold dump
+ */
+template <class T> void EEPROManager<T>::print(Stream* stream)
+{
+  for (uint16_t i=0; i<EEPROM.length(); i++)
+  {
+    stream->printf("%02X ", EEPROM.read(i));
+  }
+  stream->printf("\n");
 }
 
 /**
