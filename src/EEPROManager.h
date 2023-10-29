@@ -32,8 +32,11 @@
     public:
       EEPROManager(T *MEMORY, uint16_t KEY = 0x0001);   // Constructor which sets the EEPROM ENTRY unique KEY and binds the MEMORY
       uint32_t update();                                // Updates the EEPROM ENTRY if the MEMORY has changed since last check
+      void synchronise();                               // Scynhronises the EEPROM similar to the constructor in case the constructor method is not supported
+      void reset();                                     // Resets the entire EEPROM back to default data (0xFF, 0xFF...)
              
     private:
+    void begin()                                        // Function used to initialise the EEPROM
       void initialise();                                // Initialises the CRC8, WRITE_COUNT, LENGTH and CRC32
       uint8_t locate();                                 // Locates a valid EEPROM ENTRY matching MEMORY or uninitialised space ready for writing
       void write();                                     // Writes the current MEMORY into the EEPROM ENTRY at the current ADDRESS
@@ -53,14 +56,69 @@
 /**
  * @brief Construct a new EEPROManager<T>::EEPROManager object
  * 
- * @tparam T 
- * @param MEMORY 
- * @param KEY 
+ * @tparam T Object (struct) to manage
+ * @param MEMORY Pointer to object (struct) to manager
+ * @param KEY Unique identifier key for entry location in EEPROM
  */
 template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
 {
   _MEMORY = MEMORY;
   _ENTRY_KEY = KEY;
+  #if !defined(BOARD_RP2040) || !defined(BOARD_ESP)
+  begin();
+  #endif
+}
+
+/**
+ * @brief Synchronise settings for flash based EEPROMs
+ * 
+ * @tparam T Object (struct) to manage
+ */
+template <class T> void EEPROManager::synchronise()
+{
+  #ifdef BOARD_RP2040
+  EEPROM.begin(4096);
+  begin();
+  #endif
+  #ifdef BOARD_ESP
+  EEPROM.begin(512);
+  begin();
+  #endif
+}
+
+/**
+ * @brief Resets the EEPROM by overwriting the values with 0xFF
+ * 
+ * @tparam T Object (struct) to manage
+ */
+template <class T> void EEPROManager::reset()
+{
+  for (uint16_t i = 0 ; i < EEPROM.length() ; i++)
+  {
+    #ifndef BOARD_ESP
+    EEPROM.update(i, 0xFF);
+    #endif
+    #ifdef BOARD_ESP
+    byte currentByte = EEPROM.read(i);
+    if (currentByte != 0xFF)
+    {
+      EEPROM.write(i, 0xFF);
+    }
+    #endif
+  }
+  #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+  EEPROM.commit();
+  #endif
+  begin();
+}
+
+/**
+ * @brief Used during construction to locate and initialise the EEPROM
+ * 
+ * @tparam T Object (struct) to manage
+ */
+template <class T> void EEPROManager::begin()
+{
   initialise();
   if (locate())
   {
@@ -75,9 +133,9 @@ template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
 }
 
 /**
- * @brief 
+ * @brief Initialisation routine for EEPROM
  * 
- * @tparam T 
+ * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::initialise()
 {
@@ -88,10 +146,10 @@ template <class T> void EEPROManager<T>::initialise()
 }
 
 /**
- * @brief 
+ * @brief Used to locate current entry in EEPROM
  * 
- * @tparam T 
- * @return uint8_t 
+ * @tparam T Object (struct) to manage
+ * @return uint8_t Address location of EEPROM entry
  */
 template <class T> uint8_t EEPROManager<T>::locate()
 {
@@ -100,16 +158,16 @@ template <class T> uint8_t EEPROManager<T>::locate()
   while (_ADDRESS < EEPROM.length())
   {
     // Look for EEPROMEntry: check if KEY valid in EEPROM
-    uint16_t EEPROMKey;
+    uint16_t EEPROMKey = 0;
+    uint8_t EEPROMCRC8 = 0;
     EEPROM.get(_ADDRESS, EEPROMKey);
-    uint8_t EEPROMCRC8;
     EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY), EEPROMCRC8);
     if (crc8(static_cast<uint8_t*>(static_cast<void*>(&EEPROMKey)),sizeof(uint8_t)) == EEPROMCRC8)
     {
       // Valid EEPROMEntry: read header EEPROMEntry information and check if matching KEY
-      uint32_t EEPROMCount;
+      uint32_t EEPROMCount = 0;
+      uint16_t EEPROMLength = 0;
       EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8), EEPROMCount);
-      uint16_t EEPROMLength;
       EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof(_ENTRY_WRITE_COUNT), EEPROMLength);
       if (EEPROMKey == _ENTRY_KEY && EEPROMCount < EEPROM_MAX_WRITES)
       {
@@ -134,10 +192,10 @@ template <class T> uint8_t EEPROManager<T>::locate()
 }
 
 /**
- * @brief 
+ * @brief If values differ between the EEPROM and registered object (struct) the changed values are written to the EEPROM
  * 
- * @tparam T 
- * @return uint32_t 
+ * @tparam T Object (struct) to manage
+ * @return uint32_t Entry write count
  */
 template <class T> uint32_t EEPROManager<T>::update()
 {
@@ -155,6 +213,9 @@ template <class T> uint32_t EEPROManager<T>::update()
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8), _ENTRY_WRITE_COUNT);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
+    #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+    EEPROM.commit();
+    #endif
     if (_ENTRY_WRITE_COUNT >= EEPROM_MAX_WRITES)
     {
       // Write count has been exceeded: locate uninitialised space for new EEPROMEntry
@@ -181,9 +242,9 @@ template <class T> uint32_t EEPROManager<T>::update()
 }
 
 /**
- * @brief 
+ * @brief Writes the EEPROM entry
  * 
- * @tparam T 
+ * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::write()
 {
@@ -193,12 +254,15 @@ template <class T> void EEPROManager<T>::write()
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT), _ENTRY_LENGTH);
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
+  #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+  EEPROM.commit();
+  #endif
 }
 
 /**
- * @brief 
+ * @brief Reads the EEPROM entry
  * 
- * @tparam T 
+ * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::read()
 {

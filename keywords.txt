@@ -13,6 +13,13 @@ EEPROManager	KEYWORD1
 #######################################
 
 update	KEYWORD2
+synchronise KEYWORD2
+reset KEYWORD2
+begin KEYWORD2
+initialise  KEYWORD2
+locate  KEYWORD2
+read  KEYWORD2
+write KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
