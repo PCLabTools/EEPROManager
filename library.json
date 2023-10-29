@@ -1,6 +1,6 @@
 {
   "name": "EEPROManager",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "EEPROM Manager which safely stores and retrieves referenced structs to provide persistent memory",
   "keywords": "eeprom, manage, struct, nvm, memory",
   "repository":
@@ -24,6 +24,9 @@
       "owner": "robtillaart",
       "name": "CRC",
       "version": "^0.1.5"
+    },
+    {
+      "name": "EEPROM"
     }
   ],
   "frameworks": "arduino",
