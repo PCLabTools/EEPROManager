@@ -36,7 +36,7 @@
       void reset();                                     // Resets the entire EEPROM back to default data (0xFF, 0xFF...)
              
     private:
-    void begin()                                        // Function used to initialise the EEPROM
+      void begin();                                     // Function used to initialise the EEPROM
       void initialise();                                // Initialises the CRC8, WRITE_COUNT, LENGTH and CRC32
       uint8_t locate();                                 // Locates a valid EEPROM ENTRY matching MEMORY or uninitialised space ready for writing
       void write();                                     // Writes the current MEMORY into the EEPROM ENTRY at the current ADDRESS
@@ -74,7 +74,7 @@ template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
  * 
  * @tparam T Object (struct) to manage
  */
-template <class T> void EEPROManager::synchronise()
+template <class T> void EEPROManager<T>::synchronise()
 {
   #ifdef BOARD_RP2040
   EEPROM.begin(4096);
@@ -91,7 +91,7 @@ template <class T> void EEPROManager::synchronise()
  * 
  * @tparam T Object (struct) to manage
  */
-template <class T> void EEPROManager::reset()
+template <class T> void EEPROManager<T>::reset()
 {
   for (uint16_t i = 0 ; i < EEPROM.length() ; i++)
   {
@@ -117,7 +117,7 @@ template <class T> void EEPROManager::reset()
  * 
  * @tparam T Object (struct) to manage
  */
-template <class T> void EEPROManager::begin()
+template <class T> void EEPROManager<T>::begin()
 {
   initialise();
   if (locate())
