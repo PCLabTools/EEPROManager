@@ -1,12 +1,12 @@
 {
   "name": "EEPROManager",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "EEPROM Manager which safely stores and retrieves referenced structs to provide persistent memory",
   "keywords": "eeprom, manage, struct, nvm, memory",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/PCLabTools/EEPROManager"
+    "url": "https://github.com/PCLabTools/EEPROManager.git"
   },
   "authors":
   [
@@ -21,9 +21,8 @@
   "dependencies":
   [
     {
-      "owner": "robtillaart",
       "name": "CRC",
-      "version": "^0.1.5"
+      "version": "https://github.com/RobTillaart/CRC.git"
     },
     {
       "name": "EEPROM"

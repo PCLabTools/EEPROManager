@@ -15,6 +15,9 @@ EEPROManager	KEYWORD1
 update	KEYWORD2
 synchronise KEYWORD2
 reset KEYWORD2
+wipe  KEYWORD2
+print KEYWORD2
+force KEYWORD2
 begin KEYWORD2
 initialise  KEYWORD2
 locate  KEYWORD2

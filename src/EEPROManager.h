@@ -1,20 +1,30 @@
 /**
  * @file EEPROManager.h
- * @author Larry Colvin (pclabtools@projectcolvin.com)
+ * @author Larry Colvin (pclabtools@colvin.app)
  * @brief Library header file for the EEPROManager Arduino library
  * @version 0.1
- * @date 2022-01-08
+ * @date 2025-02-08
  * 
- * @copyright Copyright PCLabTools(c) 2022
+ * @copyright Copyright PCLabTools(c) 2025
  * 
  */
 
-#include <Arduino.h>
+#ifndef EEPROManager_h
+#define EEPROManager_h
+
 #include <EEPROM.h>
 #include <CRC.h>
 
 #ifndef EEPROM_MAX_WRITES
-  #define EEPROM_MAX_WRITES 100000
+#define EEPROM_MAX_WRITES 100000
+#endif
+
+#ifndef BOARD_RP2040_FLASH_SIZE
+#define BOARD_RP2040_FLASH_SIZE 4096
+#endif
+
+#ifndef BOARD_ESP_FLASH_SIZE
+#define BOARD_ESP_FLASH_SIZE 512
 #endif
 
 /**
@@ -23,42 +33,41 @@
  * @brief Class library to facilitate management of EEPROM entries through client defined structs
  * 
  */
-#ifndef EEPROManager_h
+template <class T> class EEPROManager 
+{
+  public:
+    EEPROManager(T *MEMORY, uint16_t KEY = 0x0001);   // Constructor which sets the EEPROM ENTRY unique KEY and binds the MEMORY
+    uint32_t update();                                // Updates the EEPROM ENTRY if the MEMORY has changed since last check
+    void synchronise();                               // Scynhronises the EEPROM similar to the constructor in case the constructor method is not supported
+    void reset();                                     // Resets the memory to default firmware values
+    void wipe();                                      // Resets the entire EEPROM back to default data (0xFF, 0xFF...)
+    void print(Stream* stream);                       // Dumps the memory to the assigned stream for use with printing and debugging
+    void force();                                     // Forces an update of the EEPROM
+            
+  private:
+    void begin();                                     // Function used to initialise the EEPROM
+    void initialise();                                // Initialises the CRC8, WRITE_COUNT, LENGTH and CRC32
+    uint8_t locate();                                 // Locates a valid EEPROM ENTRY matching MEMORY or uninitialised space ready for writing
+    void write();                                     // Writes the current MEMORY into the EEPROM ENTRY at the current ADDRESS
+    void read();                                      // Reads the current EEPROM ENTRY at the current ADDRESS into MEMORY
+    
+    uint16_t _ADDRESS = 0;                            // Current EEPROM ENTRY starting ADDRESS
+    T *_MEMORY;                                       // Pointer to MEMORY struct which is monitored for changes
+    uint16_t _ENTRY_KEY;                              // Unique KEY used for identifying EEPROM ENTRY
+    uint8_t _ENTRY_CRC8;                              // CRC8 used to check EEPROM ENTRY validity
+    uint32_t _ENTRY_WRITE_COUNT;                      // Current EEPROM ENTRY WRITE_COUNT
+    uint16_t _ENTRY_LENGTH;                           // LENGTH of the EEPROM ENTRY data
+    uint32_t _ENTRY_CRC32;                            // CRC32 used to check EEPROM ENTRY validity
+};
 
-  #define EEPROManager_h
-  
-  template <class T> class EEPROManager 
-  {
-    public:
-      EEPROManager(T *MEMORY, uint16_t KEY = 0x0001);   // Constructor which sets the EEPROM ENTRY unique KEY and binds the MEMORY
-      uint32_t update();                                // Updates the EEPROM ENTRY if the MEMORY has changed since last check
-      void synchronise();                               // Scynhronises the EEPROM similar to the constructor in case the constructor method is not supported
-      void reset();                                     // Resets the entire EEPROM back to default data (0xFF, 0xFF...)
-      void print(Stream* stream);                       // Dumps the memory to the assigned stream for use with printing and debugging
-             
-    private:
-      void begin();                                     // Function used to initialise the EEPROM
-      void initialise();                                // Initialises the CRC8, WRITE_COUNT, LENGTH and CRC32
-      uint8_t locate();                                 // Locates a valid EEPROM ENTRY matching MEMORY or uninitialised space ready for writing
-      void write();                                     // Writes the current MEMORY into the EEPROM ENTRY at the current ADDRESS
-      void read();                                      // Reads the current EEPROM ENTRY at the current ADDRESS into MEMORY
-      
-      uint16_t _ADDRESS = 0;                            // Current EEPROM ENTRY starting ADDRESS
-      T *_MEMORY;                                       // Pointer to MEMORY struct which is monitored for changes
-      uint16_t _ENTRY_KEY;                              // Unique KEY used for identifying EEPROM ENTRY
-      uint8_t _ENTRY_CRC8;                              // CRC8 used to check EEPROM ENTRY validity
-      uint32_t _ENTRY_WRITE_COUNT;                      // Current EEPROM ENTRY WRITE_COUNT
-      uint16_t _ENTRY_LENGTH;                           // LENGTH of the EEPROM ENTRY data
-      uint32_t _ENTRY_CRC32;                            // CRC32 used to check EEPROM ENTRY validity
-  };
-
-#endif
+/*******************
+ * PUBLIC METHODS  *
+ *******************/
 
 /**
  * @brief Construct a new EEPROManager<T>::EEPROManager object
  * 
- * @tparam T Object (struct) to manage
- * @param MEMORY Pointer to object (struct) to manager
+ * @tparam MEMORY Pointer to object (struct) to manager
  * @param KEY Unique identifier key for entry location in EEPROM
  */
 template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
@@ -73,38 +82,45 @@ template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
 /**
  * @brief Synchronise settings for flash based EEPROMs
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::synchronise()
 {
-  #ifdef BOARD_RP2040
-  EEPROM.begin(4096);
+  #if defined BOARD_RP2040
+  EEPROM.begin(BOARD_RP2040_FLASH_SIZE);
   begin();
-  #endif
-  #ifdef BOARD_ESP
-  EEPROM.begin(512);
+  #elif defined BOARD_ESP
+  EEPROM.begin(BOARD_ESP_FLASH_SIZE);
   begin();
   #endif
 }
 
 /**
- * @brief Resets the EEPROM by overwriting the values with 0xFF
+ * @brief Resets the memory stored values to the default firmware values
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::reset()
 {
+  T default_values = new T;
+  _MEMORY = default_values;
+  write();
+}
+
+/**
+ * @brief Resets the EEPROM by overwriting the values with 0xFF
+ * 
+ */
+template <class T> void EEPROManager<T>::wipe()
+{
   for (uint16_t i = 0 ; i < EEPROM.length() ; i++)
   {
-    #ifndef BOARD_ESP
-    EEPROM.update(i, 0xFF);
-    #endif
     #ifdef BOARD_ESP
     byte currentByte = EEPROM.read(i);
     if (currentByte != 0xFF)
     {
       EEPROM.write(i, 0xFF);
     }
+    #else
+    EEPROM.update(i, 0xFF);
     #endif
   }
   #if defined(BOARD_RP2040) || defined(BOARD_ESP)
@@ -116,8 +132,7 @@ template <class T> void EEPROManager<T>::reset()
 /**
  * @brief Prints the EEPROM dump to the assigned stream for printing and debugging
  * 
- * @tparam T Object (struct) to manage
- * @param dump string literal hold dump
+ * @param stream Stream object pointer
  */
 template <class T> void EEPROManager<T>::print(Stream* stream)
 {
@@ -129,9 +144,21 @@ template <class T> void EEPROManager<T>::print(Stream* stream)
 }
 
 /**
+ * @brief Forces the EEPROM to be updated with the currently held values
+ * 
+ */
+template <classT> void EEPROManager<T>::force()
+{
+  write();
+}
+
+/*******************
+ * PRIVATE METHODS *
+ *******************/
+
+/**
  * @brief Used during construction to locate and initialise the EEPROM
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::begin()
 {
@@ -151,7 +178,6 @@ template <class T> void EEPROManager<T>::begin()
 /**
  * @brief Initialisation routine for EEPROM
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::initialise()
 {
@@ -164,7 +190,6 @@ template <class T> void EEPROManager<T>::initialise()
 /**
  * @brief Used to locate current entry in EEPROM
  * 
- * @tparam T Object (struct) to manage
  * @return uint8_t Address location of EEPROM entry
  */
 template <class T> uint8_t EEPROManager<T>::locate()
@@ -210,7 +235,6 @@ template <class T> uint8_t EEPROManager<T>::locate()
 /**
  * @brief If values differ between the EEPROM and registered object (struct) the changed values are written to the EEPROM
  * 
- * @tparam T Object (struct) to manage
  * @return uint32_t Entry write count
  */
 template <class T> uint32_t EEPROManager<T>::update()
@@ -260,7 +284,6 @@ template <class T> uint32_t EEPROManager<T>::update()
 /**
  * @brief Writes the EEPROM entry
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::write()
 {
@@ -278,7 +301,6 @@ template <class T> void EEPROManager<T>::write()
 /**
  * @brief Reads the EEPROM entry
  * 
- * @tparam T Object (struct) to manage
  */
 template <class T> void EEPROManager<T>::read()
 {
@@ -286,3 +308,5 @@ template <class T> void EEPROManager<T>::read()
   EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
   EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
 }
+
+#endif // EEPROManager_h
