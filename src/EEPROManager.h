@@ -74,7 +74,7 @@ template <class T> EEPROManager<T>::EEPROManager(T *MEMORY, uint16_t KEY)
 {
   _MEMORY = MEMORY;
   _ENTRY_KEY = KEY;
-  #if !defined(BOARD_RP2040) || !defined(BOARD_ESP)
+  #if !defined(BOARD_RP2040) || !defined(BOARD_ESP32)
   begin();
   #endif
 }
@@ -88,7 +88,7 @@ template <class T> void EEPROManager<T>::synchronise()
   #if defined BOARD_RP2040
   EEPROM.begin(BOARD_RP2040_FLASH_SIZE);
   begin();
-  #elif defined BOARD_ESP
+  #elif defined BOARD_ESP32
   EEPROM.begin(BOARD_ESP_FLASH_SIZE);
   begin();
   #endif
@@ -100,7 +100,7 @@ template <class T> void EEPROManager<T>::synchronise()
  */
 template <class T> void EEPROManager<T>::reset()
 {
-  T default_values = new T;
+  T* default_values = new T;
   _MEMORY = default_values;
   write();
 }
@@ -113,7 +113,7 @@ template <class T> void EEPROManager<T>::wipe()
 {
   for (uint16_t i = 0 ; i < EEPROM.length() ; i++)
   {
-    #ifdef BOARD_ESP
+    #ifdef BOARD_ESP32
     byte currentByte = EEPROM.read(i);
     if (currentByte != 0xFF)
     {
@@ -123,7 +123,7 @@ template <class T> void EEPROManager<T>::wipe()
     EEPROM.update(i, 0xFF);
     #endif
   }
-  #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+  #if defined(BOARD_RP2040) || defined(BOARD_ESP32)
   EEPROM.commit();
   #endif
   begin();
@@ -253,7 +253,7 @@ template <class T> uint32_t EEPROManager<T>::update()
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8), _ENTRY_WRITE_COUNT);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
-    #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+    #if defined(BOARD_RP2040) || defined(BOARD_ESP32)
     EEPROM.commit();
     #endif
     if (_ENTRY_WRITE_COUNT >= EEPROM_MAX_WRITES)
@@ -293,7 +293,7 @@ template <class T> void EEPROManager<T>::write()
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT), _ENTRY_LENGTH);
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
   EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
-  #if defined(BOARD_RP2040) || defined(BOARD_ESP)
+  #if defined(BOARD_RP2040) || defined(BOARD_ESP32)
   EEPROM.commit();
   #endif
 }
