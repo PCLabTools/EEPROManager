@@ -147,7 +147,7 @@ template <class T> void EEPROManager<T>::print(Stream* stream)
  * @brief Forces the EEPROM to be updated with the currently held values
  * 
  */
-template <classT> void EEPROManager<T>::force()
+template <class T> void EEPROManager<T>::force()
 {
   write();
 }

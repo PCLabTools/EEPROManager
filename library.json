@@ -1,6 +1,6 @@
 {
   "name": "EEPROManager",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "EEPROM Manager which safely stores and retrieves referenced structs to provide persistent memory",
   "keywords": "eeprom, manage, struct, nvm, memory",
   "repository":
