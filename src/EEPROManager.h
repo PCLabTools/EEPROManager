@@ -181,10 +181,10 @@ template <class T> void EEPROManager<T>::begin()
  */
 template <class T> void EEPROManager<T>::initialise()
 {
-  _ENTRY_CRC8 = crc8(static_cast<uint8_t*>(static_cast<void*>(&_ENTRY_KEY)),sizeof(uint8_t));
+  _ENTRY_CRC8 = calcCRC8(static_cast<uint8_t*>(static_cast<void*>(&_ENTRY_KEY)),sizeof(uint8_t));
   _ENTRY_WRITE_COUNT = 1;
   _ENTRY_LENGTH = sizeof(T);
-  _ENTRY_CRC32 = crc32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T));
+  _ENTRY_CRC32 = calcCRC32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T));
 }
 
 /**
@@ -203,7 +203,7 @@ template <class T> uint8_t EEPROManager<T>::locate()
     uint8_t EEPROMCRC8 = 0;
     EEPROM.get(_ADDRESS, EEPROMKey);
     EEPROM.get(_ADDRESS + sizeof(_ENTRY_KEY), EEPROMCRC8);
-    if (crc8(static_cast<uint8_t*>(static_cast<void*>(&EEPROMKey)),sizeof(uint8_t)) == EEPROMCRC8)
+    if (calcCRC8(static_cast<uint8_t*>(static_cast<void*>(&EEPROMKey)),sizeof(uint8_t)) == EEPROMCRC8)
     {
       // Valid EEPROMEntry: read header EEPROMEntry information and check if matching KEY
       uint32_t EEPROMCount = 0;
@@ -240,7 +240,7 @@ template <class T> uint8_t EEPROManager<T>::locate()
 template <class T> uint32_t EEPROManager<T>::update()
 {
   // Compare MEMORY CRC32 to ENTRY CRC32
-  if (crc32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T)) == _ENTRY_CRC32)
+  if (calcCRC32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T)) == _ENTRY_CRC32)
   {
     // Data matches: do nothing
     return 0;
@@ -249,7 +249,7 @@ template <class T> uint32_t EEPROManager<T>::update()
   {
     // Data has changed: write new data to EEPROM
     _ENTRY_WRITE_COUNT++;
-    _ENTRY_CRC32 = crc32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T));
+    _ENTRY_CRC32 = calcCRC32(static_cast<uint8_t*>(static_cast<void*>(_MEMORY)),sizeof(T));
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8), _ENTRY_WRITE_COUNT);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH), *_MEMORY);
     EEPROM.put(_ADDRESS + sizeof(_ENTRY_KEY) + sizeof(_ENTRY_CRC8) + sizeof (_ENTRY_WRITE_COUNT) + sizeof(_ENTRY_LENGTH) + sizeof(T), _ENTRY_CRC32);
